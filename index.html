@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>KBC — Kaun Banega Crorepati</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;user-select:none;-webkit-user-select:none;background:#020211}
+
+/* ── CANVAS BG ── */
+#bg{position:fixed;inset:0;z-index:0;pointer-events:none}
+
+/* ── SCREENS ── */
+.scr{display:none;position:fixed;inset:0;z-index:1;flex-direction:column;align-items:center;justify-content:center}
+.scr.on{display:flex}
+
+/* ══════════════════════════
+   INTRO
+══════════════════════════ */
+#s-intro{gap:32px;text-align:center;padding:32px}
+
+.logo-stack{position:relative;width:200px;height:200px;display:flex;align-items:center;justify-content:center;margin:0 auto}
+.ring{position:absolute;border-radius:50%;border:2px solid}
+.ring-1{inset:0;border-color:#00c8ff;animation:rp 3s ease-in-out infinite;
+  background:radial-gradient(circle,rgba(0,55,140,.6) 0%,transparent 70%);
+  box-shadow:0 0 55px #00c8ff66,0 0 120px #00c8ff22,inset 0 0 55px #00a0cc22}
+.ring-2{inset:-14px;border-color:rgba(0,200,255,.18);animation:rp 3s ease-in-out infinite reverse}
+.ring-3{inset:-28px;border-color:rgba(0,200,255,.07);animation:rp 4.5s ease-in-out infinite}
+@keyframes rp{
+  0%,100%{box-shadow:0 0 40px #00c8ff44,inset 0 0 30px #00a0cc11}
+  50%{box-shadow:0 0 90px #00c8ffaa,inset 0 0 70px #00a0cc33}
+}
+.logo-kbc{
+  font-family:'Cinzel',serif;font-weight:900;font-size:3.3rem;letter-spacing:.2em;
+  background:linear-gradient(160deg,#fffbe0 0%,#ffd700 40%,#c88800 80%,#7a5200 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  position:relative;z-index:1;text-shadow:none;
+}
+
+.intro-title{
+  font-family:'Cinzel',serif;font-weight:700;letter-spacing:.1em;
+  font-size:clamp(1.1rem,2.8vw,1.9rem);
+  background:linear-gradient(160deg,#fffbe0 0%,#ffd700 50%,#a06800 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.intro-divider{
+  width:240px;height:1px;margin:0 auto;
+  background:linear-gradient(90deg,transparent,#00c8ff80,transparent);
+}
+.intro-sub{
+  font-family:'Rajdhani',sans-serif;
+  font-size:.85rem;font-weight:600;letter-spacing:.2em;
+  color:#0099bb;opacity:.9;
+}
+.btn-play{
+  font-family:'Rajdhani',sans-serif;font-weight:700;font-size:1.25rem;letter-spacing:.25em;
+  color:#040420;
+  background:linear-gradient(135deg,#ffe84d 0%,#ffd700 50%,#c88800 100%);
+  border:none;border-radius:60px;
+  padding:18px 80px;
+  cursor:pointer;
+  box-shadow:0 0 55px #ffd70066,0 8px 32px rgba(0,0,0,.55);
+  transition:transform .15s,box-shadow .15s;
+}
+.btn-play:hover{transform:scale(1.08);box-shadow:0 0 90px #ffd700aa,0 8px 32px rgba(0,0,0,.6)}
+.btn-play:active{transform:scale(.96)}
+
+/* ══════════════════════════
+   GAME LAYOUT
+══════════════════════════ */
+#s-game{
+  font-family:'Rajdhani',sans-serif;
+  flex-direction:column;
+  padding:14px 28px 20px;
+  gap:10px;
+  justify-content:flex-start;
+  overflow:hidden;
+}
+
+/* ── TOP BAR ── */
+.topbar{
+  display:flex;align-items:center;gap:16px;
+  width:100%;flex-shrink:0;
+}
+
+/* Lifelines */
+.lifelines{display:flex;gap:14px}
+.ll{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  border:none;background:none;cursor:pointer;padding:0;
+  transition:transform .15s;
+}
+.ll:not(.used):hover{transform:scale(1.1)}
+.ll-coin{
+  position:relative;
+  width:58px;height:58px;border-radius:50%;
+  border:2px solid #00c8ff;
+  background:linear-gradient(145deg,rgba(0,40,90,.96),rgba(0,18,55,.97));
+  display:flex;align-items:center;justify-content:center;
+  font-size:.95rem;font-weight:800;color:#00c8ff;
+  box-shadow:0 0 20px #00c8ff44,inset 0 1px 0 rgba(255,255,255,.08);
+  overflow:hidden;
+  transition:box-shadow .2s,border-color .2s;
+}
+.ll-coin::before{
+  content:'';position:absolute;inset:0;border-radius:50%;
+  background:radial-gradient(circle at 32% 26%,rgba(255,255,255,.12),transparent 52%);
+}
+.ll:not(.used):hover .ll-coin{box-shadow:0 0 40px #00c8ffaa;border-color:#fff}
+.ll-inner{position:relative;z-index:1}
+.ll-x{
+  display:none;position:absolute;inset:0;border-radius:50%;
+  align-items:center;justify-content:center;
+  background:rgba(0,0,0,.7);font-size:1.5rem;font-weight:900;color:#550015;
+}
+.ll.used .ll-coin{border-color:#0e0e2a;box-shadow:none;background:rgba(8,8,30,.96)}
+.ll.used .ll-inner{opacity:0}
+.ll.used .ll-x{display:flex}
+.ll-label{font-size:.6rem;font-weight:700;letter-spacing:.12em;color:#0099bb}
+
+/* Timer */
+.timer-wrap{margin:0 auto;position:relative;width:76px;height:76px;flex-shrink:0}
+.t-svg{width:100%;height:100%;transform:rotate(-90deg)}
+.t-track{fill:none;stroke:rgba(0,70,110,.45);stroke-width:6}
+.t-ring{
+  fill:none;stroke:#00c8ff;stroke-width:6;stroke-linecap:round;
+  stroke-dasharray:201;stroke-dashoffset:0;
+  transition:stroke-dashoffset 1s linear,stroke .5s;
+}
+.t-ring.warn{stroke:#ff8800}
+.t-ring.danger{stroke:#ff1a44;animation:tdanger .5s ease-in-out infinite alternate}
+@keyframes tdanger{from{filter:drop-shadow(0 0 2px #ff1a44)}to{filter:drop-shadow(0 0 16px #ff1a44)}}
+.t-num{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:'Cinzel',serif;font-size:1.35rem;font-weight:900;color:#00c8ff;
+  transition:color .5s;
+}
+.t-num.warn{color:#ff8800}
+.t-num.danger{color:#ff1a44}
+
+/* Progress */
+.progress{display:flex;gap:5px;align-items:center;flex-shrink:0}
+.pdot{
+  width:10px;height:10px;border-radius:50%;
+  background:rgba(0,45,85,.8);border:1px solid rgba(0,150,190,.18);
+  transition:all .35s;
+}
+.pdot.done{background:rgba(0,190,255,.25);border-color:#0088aa}
+.pdot.cur{background:#ffd700;border-color:#ffd700;box-shadow:0 0 10px #ffd700cc}
+
+/* Walk */
+.btn-walk{
+  margin-left:auto;flex-shrink:0;
+  font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.78rem;letter-spacing:.1em;
+  color:rgba(0,200,255,.72);
+  background:rgba(0,5,22,.78);
+  border:1.5px solid rgba(0,180,255,.2);border-radius:8px;
+  padding:9px 18px;cursor:pointer;
+  transition:all .2s;
+}
+.btn-walk:hover{border-color:#00c8ff;color:#00c8ff;background:rgba(0,16,55,.8)}
+
+/* ── OVERLAY ── */
+.ov-zone{
+  width:100%;flex-shrink:0;
+  min-height:110px;max-height:128px;
+  display:flex;align-items:flex-end;justify-content:center;
+}
+.ov-card{
+  width:100%;max-width:560px;
+  background:rgba(2,3,26,.98);
+  border:1.5px solid rgba(0,200,255,.5);border-radius:16px;
+  padding:16px 24px;
+  box-shadow:0 0 40px rgba(0,200,255,.14);
+  animation:ovslide .25s ease;
+}
+@keyframes ovslide{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.ph-line{font-family:'Cinzel',serif;font-size:1rem;color:#ffd700;text-align:center;font-style:italic;line-height:1.5}
+.ph-cd{text-align:center;margin-top:6px;color:#0099bb;font-size:.76rem;font-weight:600;letter-spacing:.08em}
+.aud-title{font-size:.66rem;color:#0099bb;letter-spacing:.18em;text-align:center;margin-bottom:10px}
+.aud-row{display:flex;gap:18px;align-items:flex-end;height:72px;justify-content:center}
+.aud-col{display:flex;flex-direction:column;align-items:center;gap:3px;width:46px}
+.aud-pct{font-size:.72rem;color:#00c8ff;font-weight:700}
+.aud-well{width:100%;height:56px;background:rgba(0,30,58,.5);border-radius:3px 3px 0 0;display:flex;align-items:flex-end;overflow:hidden}
+.aud-fill{width:100%;height:0%;background:linear-gradient(to top,#003d5a,#00c8ff);transition:height 1.1s ease-out}
+.aud-ltr{font-weight:700;color:#ffd700;font-size:.9rem}
+
+/* ── QUESTION BOX ── */
+.q-wrap{
+  width:100%;flex-shrink:0;
+  position:relative;
+}
+.q-box{
+  width:100%;
+  background:linear-gradient(180deg,rgba(6,10,64,.98) 0%,rgba(3,5,40,.98) 100%);
+  border:2px solid rgba(0,200,255,.62);
+  clip-path:polygon(36px 0,calc(100% - 36px) 0,100% 50%,calc(100% - 36px) 100%,36px 100%,0 50%);
+  padding:24px 84px;min-height:98px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  box-shadow:0 0 70px rgba(0,200,255,.08),inset 0 0 90px rgba(0,60,180,.12);
+}
+.q-box::before,.q-box::after{
+  content:'';position:absolute;height:1.5px;width:70px;
+  background:linear-gradient(90deg,transparent,rgba(0,200,255,.4));
+}
+.q-box::before{top:20px;left:60px}
+.q-box::after{bottom:20px;right:60px;transform:scaleX(-1)}
+.q-no{font-size:.62rem;font-weight:700;letter-spacing:.24em;color:#0088aa;opacity:.9}
+.q-text{
+  font-family:'Cinzel',serif;font-weight:700;text-align:center;
+  font-size:clamp(.85rem,1.75vw,1.2rem);line-height:1.6;color:#e8eeff;
+}
+
+/* ── ANSWERS ── */
+.ans-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:11px;
+  width:100%;flex-shrink:0;
+}
+.ans{
+  position:relative;overflow:hidden;
+  display:flex;align-items:center;gap:18px;
+  padding:15px 36px;
+  background:linear-gradient(135deg,rgba(5,8,50,.95),rgba(2,4,32,.95));
+  border:1.5px solid rgba(0,140,185,.36);
+  clip-path:polygon(20px 0,calc(100% - 20px) 0,100% 50%,calc(100% - 20px) 100%,20px 100%,0 50%);
+  cursor:pointer;color:#e8eeff;
+  font-family:'Rajdhani',sans-serif;
+  transition:background .22s,border-color .22s,box-shadow .22s,transform .1s;
+}
+/* inner shine */
+.ans::after{
+  content:'';position:absolute;top:0;left:-100%;width:60%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);
+  transition:left .4s ease;
+}
+.ans:hover:not(:disabled)::after{left:140%}
+.ans:hover:not(:disabled){
+  border-color:rgba(0,200,255,.7);
+  box-shadow:0 0 28px rgba(0,200,255,.28);
+}
+.ans:active:not(:disabled){transform:scale(.984)}
+.ans:disabled{cursor:default}
+
+/* Answer states */
+.ans.sel{background:linear-gradient(135deg,rgba(110,48,0,.95),rgba(66,28,0,.95));border-color:#ff8800;box-shadow:0 0 35px rgba(255,136,0,.42)}
+.ans.correct{background:linear-gradient(135deg,rgba(0,80,30,.95),rgba(0,50,18,.95));border-color:#00e87a;box-shadow:0 0 42px rgba(0,232,122,.52)}
+.ans.wrong{background:linear-gradient(135deg,rgba(90,0,18,.95),rgba(55,0,12,.95));border-color:#ff1a44;box-shadow:0 0 42px rgba(255,26,68,.52)}
+.ans.elim{opacity:0!important;pointer-events:none;transition:opacity .3s}
+
+.ans-letter{
+  font-family:'Cinzel',serif;font-size:1rem;font-weight:900;
+  color:#ffd700;flex-shrink:0;min-width:20px;
+}
+.ans.sel .ans-letter,.ans.correct .ans-letter,.ans.wrong .ans-letter{color:#fff}
+.ans-text{font-size:clamp(.82rem,1.4vw,1rem);font-weight:600;line-height:1.3}
+
+/* ══════════════════════════
+   END SCREENS
+══════════════════════════ */
+#s-over,#s-win{padding:28px;text-align:center}
+
+.end-card{
+  background:linear-gradient(180deg,rgba(6,10,56,.98),rgba(2,4,36,.98));
+  border:2px solid rgba(0,200,255,.48);border-radius:26px;
+  padding:52px 64px;max-width:520px;width:100%;
+  box-shadow:0 0 100px rgba(0,200,255,.14);
+  display:flex;flex-direction:column;align-items:center;gap:18px;
+}
+.end-icon{font-size:3.5rem;line-height:1}
+.end-title{font-family:'Cinzel',serif;font-size:2.1rem;font-weight:900;color:#e8eeff}
+.end-sub{color:rgba(120,150,240,.45);font-size:1.05rem;font-weight:500}
+.end-score{
+  font-family:'Cinzel',serif;font-size:2.9rem;font-weight:900;
+  background:linear-gradient(160deg,#fffbe0,#ffd700 55%,#7a5200);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  padding:14px 0;width:100%;
+  border-top:1px solid rgba(0,200,255,.16);border-bottom:1px solid rgba(0,200,255,.16);
+}
+.end-lbl{color:rgba(120,150,240,.45);font-size:.8rem;letter-spacing:.1em}
+.btn-again{
+  margin-top:6px;padding:15px 54px;
+  font-family:'Rajdhani',sans-serif;font-weight:700;font-size:1.1rem;letter-spacing:.14em;
+  color:#e8eeff;background:#0088aa;border:none;border-radius:50px;cursor:pointer;
+  transition:background .2s,transform .15s;
+}
+.btn-again:hover{background:#00c8ff;color:#020211;transform:scale(1.07)}
+
+/* WIN */
+#s-win .end-card{border-color:#ffd700;box-shadow:0 0 130px rgba(255,215,0,.28)}
+.win-text{
+  font-family:'Cinzel',serif;font-size:clamp(2.4rem,7vw,4.2rem);font-weight:900;
+  background:linear-gradient(160deg,#fffbe0,#ffd700 55%,#7a5200);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  animation:gp 1.8s ease-in-out infinite;
+}
+@keyframes gp{
+  0%,100%{filter:drop-shadow(0 0 5px rgba(255,215,0,.4))}
+  50%{filter:drop-shadow(0 0 30px rgba(255,215,0,1))}
+}
+.win-sub{font-size:1.05rem;color:rgba(120,150,240,.5)}
+.btn-win{
+  margin-top:6px;padding:15px 54px;
+  font-family:'Rajdhani',sans-serif;font-weight:700;font-size:1.1rem;letter-spacing:.14em;
+  color:#020211;background:linear-gradient(135deg,#ffd700,#c88800);
+  border:none;border-radius:50px;cursor:pointer;
+  box-shadow:0 0 40px rgba(255,215,0,.45);
+  transition:transform .15s,box-shadow .15s;
+}
+.btn-win:hover{transform:scale(1.08);box-shadow:0 0 70px rgba(255,215,0,.8)}
+
+/* Confetti */
+.cf{position:fixed;top:-18px;pointer-events:none;z-index:999;animation:cf linear forwards}
+@keyframes cf{to{transform:translateY(110vh) rotate(900deg);opacity:0}}
+
+/* Sound btn */
+#snd{
+  position:fixed;top:12px;right:14px;z-index:900;
+  width:36px;height:36px;border-radius:50%;
+  background:rgba(0,4,22,.9);border:1px solid rgba(0,200,255,.22);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:1.05rem;color:#fff;
+  transition:background .2s,border-color .2s;
+}
+#snd:hover{background:rgba(0,18,55,.9);border-color:#00c8ff}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<button id="snd" title="Toggle sound">🔊</button>
+
+<!-- INTRO -->
+<div id="s-intro" class="scr on">
+  <div class="logo-stack">
+    <div class="ring ring-3"></div>
+    <div class="ring ring-2"></div>
+    <div class="ring ring-1"></div>
+    <span class="logo-kbc">KBC</span>
+  </div>
+  <div class="intro-title">Kaun Banega Crorepati</div>
+  <div class="intro-divider"></div>
+  <p class="intro-sub">15 QUESTIONS &nbsp;·&nbsp; 60 SECONDS EACH &nbsp;·&nbsp; 3 LIFELINES</p>
+  <button class="btn-play" id="btnPlay">PLAY NOW</button>
+</div>
+
+<!-- GAME -->
+<div id="s-game" class="scr">
+  <div class="topbar">
+    <div class="lifelines">
+      <button class="ll" id="ll50">
+        <div class="ll-coin"><span class="ll-inner" style="font-size:.78rem;font-weight:900">50:50</span><span class="ll-x">✕</span></div>
+        <span class="ll-label">FIFTY-FIFTY</span>
+      </button>
+      <button class="ll" id="llPh">
+        <div class="ll-coin"><span class="ll-inner">📞</span><span class="ll-x">✕</span></div>
+        <span class="ll-label">PHONE</span>
+      </button>
+      <button class="ll" id="llAu">
+        <div class="ll-coin"><span class="ll-inner">👥</span><span class="ll-x">✕</span></div>
+        <span class="ll-label">AUDIENCE</span>
+      </button>
+    </div>
+
+    <div class="timer-wrap">
+      <svg class="t-svg" viewBox="0 0 76 76">
+        <circle class="t-track" cx="38" cy="38" r="32"/>
+        <circle class="t-ring" cx="38" cy="38" r="32" id="tRing"/>
+      </svg>
+      <div class="t-num" id="tNum">60</div>
+    </div>
+
+    <div class="progress" id="dots"></div>
+
+    <button class="btn-walk" id="btnWalk">🚶 WALK AWAY</button>
+  </div>
+
+  <div class="ov-zone" id="ovZone"></div>
+
+  <div class="q-wrap">
+    <div class="q-box">
+      <div class="q-no" id="qNo">QUESTION 1 OF 15</div>
+      <div class="q-text" id="qText"></div>
+    </div>
+  </div>
+
+  <div class="ans-grid" id="ansGrid">
+    <button class="ans" data-i="0"><span class="ans-letter">A</span><span class="ans-text"></span></button>
+    <button class="ans" data-i="1"><span class="ans-letter">B</span><span class="ans-text"></span></button>
+    <button class="ans" data-i="2"><span class="ans-letter">C</span><span class="ans-text"></span></button>
+    <button class="ans" data-i="3"><span class="ans-letter">D</span><span class="ans-text"></span></button>
+  </div>
+</div>
+
+<!-- GAME OVER -->
+<div id="s-over" class="scr">
+  <div class="end-card">
+    <div class="end-icon" id="goIcon">😢</div>
+    <div class="end-title" id="goTitle">Game Over</div>
+    <div class="end-sub" id="goSub"></div>
+    <div class="end-score" id="goScore">0 / 15</div>
+    <div class="end-lbl" id="goLbl">Questions answered correctly</div>
+    <button class="btn-again" id="btnAgain">PLAY AGAIN</button>
+  </div>
+</div>
+
+<!-- WIN -->
+<div id="s-win" class="scr">
+  <div class="end-card">
+    <div class="end-icon">🎉</div>
+    <div class="win-text">CROREPATI!</div>
+    <div class="win-sub">You answered all 15 questions correctly!</div>
+    <button class="btn-win" id="btnWin">PLAY AGAIN</button>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════
+   STARFIELD
+══════════════════════════════════ */
+(()=>{
+  const cv=document.getElementById('bg'),cx=cv.getContext('2d');
+  let W,H,stars=[];
+  const init=()=>{
+    W=cv.width=innerWidth;H=cv.height=innerHeight;
+    stars=[];
+    const n=Math.floor(W*H/6500);
+    for(let i=0;i<n;i++)
+      stars.push({x:rand(W),y:rand(H),r:.15+Math.random()*.9,a:rand(Math.PI*2),s:.02+Math.random()*.45,c:Math.random()>.85?[180,220,255]:[160,200,255]});
+  };
+  const rand=n=>Math.random()*n;
+  const draw=()=>{
+    cx.clearRect(0,0,W,H);
+    // Atmospheric glow
+    const g=cx.createRadialGradient(W/2,H*.38,0,W/2,H*.38,W*.62);
+    g.addColorStop(0,'rgba(7,16,110,.58)');g.addColorStop(.6,'rgba(2,4,30,.2)');g.addColorStop(1,'rgba(2,2,14,0)');
+    cx.fillStyle=g;cx.fillRect(0,0,W,H);
+    // Bottom spotlight
+    const sg=cx.createRadialGradient(W/2,H,0,W/2,H,W*.45);
+    sg.addColorStop(0,'rgba(0,80,160,.25)');sg.addColorStop(1,'rgba(0,0,0,0)');
+    cx.fillStyle=sg;cx.fillRect(0,0,W,H);
+    // Stars
+    for(const s of stars){
+      s.a+=s.s*.016;
+      const op=.15+.65*Math.abs(Math.sin(s.a));
+      cx.beginPath();cx.arc(s.x,s.y,s.r,0,Math.PI*2);
+      cx.fillStyle=`rgba(${s.c[0]},${s.c[1]},${s.c[2]},${op})`;cx.fill();
+    }
+    requestAnimationFrame(draw);
+  };
+  addEventListener('resize',init);init();draw();
+})();
+
+/* ══════════════════════════════════
+   RICH WEB AUDIO ENGINE
+══════════════════════════════════ */
+const SFX=(()=>{
+  let AC=null,muted=false;
+  let tickTmr=null,tickBeat=0;
+  let suspNode=null,suspGain=null,suspOn=false;
+
+  const ac=()=>{
+    if(!AC)AC=new(window.AudioContext||window.webkitAudioContext)();
+    if(AC.state==='suspended')AC.resume();
+    return AC;
+  };
+
+  // Utility: schedule a basic oscillator tone
+  const tone=(f,t,dur,type,vol,fi=.01,fo=.08)=>{
+    if(muted)return;
+    const c=ac(),o=c.createOscillator(),g=c.createGain();
+    o.connect(g);g.connect(c.destination);
+    o.type=type;o.frequency.value=f;
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(vol,t+fi);
+    g.gain.setValueAtTime(vol,Math.max(t+fi+.001,t+dur-fo));
+    g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.start(t);o.stop(t+dur+.03);
+  };
+
+  // Noise burst (percussion / click)
+  const noise=(t,dur,vol,lpFreq=800,hpFreq=200)=>{
+    if(muted)return;
+    const c=ac();
+    const buf=c.createBuffer(1,c.sampleRate*dur,c.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+    const src=c.createBufferSource();
+    src.buffer=buf;
+    const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=lpFreq;
+    const hp=c.createBiquadFilter();hp.type='highpass';hp.frequency.value=hpFreq;
+    const g=c.createGain();
+    src.connect(lp);lp.connect(hp);hp.connect(g);g.connect(c.destination);
+    g.gain.setValueAtTime(vol,t);
+    g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    src.start(t);src.stop(t+dur+.01);
+  };
+
+  // ── TICK-TOCK: realistic clock click ──
+  const doTick=()=>{
+    if(muted)return;
+    const c=ac(),now=c.currentTime;
+    const hi=tickBeat%2===0;
+    // Sharp transient: noise burst
+    noise(now,.04,hi?.22:.16,hi?2200:1600,hi?600:400);
+    // Resonant tone underneath
+    tone(hi?1480:1050,now,.055,'square',hi?.06:.045,.002,.04);
+    tickBeat++;
+  };
+
+  // Tick speed stages (ms between ticks)
+  const tickMs=t=>{
+    if(t>50)return 1800;if(t>42)return 1400;if(t>34)return 1050;
+    if(t>26)return 780;if(t>18)return 560;if(t>10)return 380;
+    if(t>5)return 250;return 160;
+  };
+
+  const startTick=t=>{
+    stopTick();doTick();
+    tickTmr=setInterval(doTick,tickMs(t));
+  };
+  const stopTick=()=>{if(tickTmr){clearInterval(tickTmr);tickTmr=null}};
+
+  // ── SUSPENSE LOOP: layered bass drones ──
+  const SUSP_SEQ=[
+    [110,.22,165],[0,0,88],[110,.18,108],[0,0,120],
+    [138.59,.22,158],[0,0,88],[110,.18,108],[0,0,220],
+    [110,.22,165],[0,0,88],[123.47,.18,108],[0,0,120],
+    [138.59,.22,158],[0,0,88],[130.81,.2,108],[0,0,278],
+  ];
+  let sIdx=0,sTmr=null;
+  const schedSusp=()=>{
+    if(!suspOn)return;
+    const[f,v,ms]=SUSP_SEQ[sIdx%SUSP_SEQ.length];
+    if(f>0&&!muted){
+      const c=ac(),now=c.currentTime;
+      tone(f,now,ms/1000-0.04,'sine',v*.55,.01,.04);
+      if(sIdx%4===0)tone(f*2,now,ms/1600,'sine',v*.22,.01,.04);
+      if(sIdx%8===0)tone(f*.5,now,ms/1200,'triangle',v*.28,.01,.05);
+    }
+    sIdx++;sTmr=setTimeout(schedSusp,ms);
+  };
+  const startSusp=()=>{if(suspOn)return;suspOn=true;sIdx=0;schedSusp()};
+  const stopSusp=()=>{suspOn=false;if(sTmr){clearTimeout(sTmr);sTmr=null}};
+
+  // ── SELECT: soft double-click ──
+  const playSelect=()=>{
+    if(muted)return;
+    const c=ac(),now=c.currentTime;
+    noise(now,.03,.12,3000,800);
+    tone(1320,now,.06,'sine',.15,.003,.03);
+    noise(now+.06,.025,.09,2500,700);
+    tone(880,now+.06,.06,'sine',.1,.003,.03);
+  };
+
+  // ── CORRECT: ascending KBC-style fanfare ──
+  const playCorrect=()=>{
+    stopSusp();stopTick();
+    if(muted)return;
+    const c=ac(),now=c.currentTime;
+    // Melody: bright ascending arpeggio
+    const mel=[[523.25,0,.28],[659.25,.2,.28],[783.99,.38,.28],[1046.5,.56,.4],[1318.51,.82,.5],[1567.98,1.12,.65]];
+    mel.forEach(([f,t,d])=>tone(f,now+t,d,'sine',.38,.01,.1));
+    // Harmony a third below
+    [[415.3,0,.28],[523.25,.2,.28],[622.25,.38,.28],[830.6,.56,.4],[1046.5,.82,.5]].forEach(([f,t,d])=>tone(f,now+t,d,'sine',.18,.01,.1));
+    // Deep bass thump
+    tone(130.81,now,.4,'triangle',.32,.01,.15);
+    tone(196,now+.56,.4,'triangle',.22,.01,.12);
+    // Bright shimmer
+    noise(now,.15,.08,8000,4000);
+    noise(now+.56,.12,.06,8000,4000);
+    noise(now+1.12,.2,.07,8000,4000);
+  };
+
+  // ── WRONG: descending distorted buzzer ──
+  const playWrong=()=>{
+    stopSusp();stopTick();
+    if(muted)return;
+    const c=ac(),now=c.currentTime;
+    // Distorted sawtooth buzzer
+    const o=c.createOscillator(),g=c.createGain(),ws=c.createWaveShaper();
+    const curve=new Float32Array(512);
+    for(let i=0;i<512;i++){const x=(i*2/511)-1;curve[i]=x<0?-Math.pow(-x,.6):Math.pow(x,.6)}
+    ws.curve=curve;
+    o.connect(ws);ws.connect(g);g.connect(c.destination);
+    o.type='sawtooth';
+    o.frequency.setValueAtTime(280,now);
+    o.frequency.linearRampToValueAtTime(200,now+.2);
+    o.frequency.exponentialRampToValueAtTime(60,now+1.6);
+    g.gain.setValueAtTime(.55,now);g.gain.exponentialRampToValueAtTime(.0001,now+1.8);
+    o.start(now);o.stop(now+1.85);
+    // Low rumble
+    noise(now+.05,.3,.12,220,60);
+    // Secondary descending tone
+    tone(220,now+.1,1.1,'sawtooth',.14,.005,.2);
+  };
+
+  // ── LIFELINE CHIME: ascending bright bells ──
+  const playLifeline=()=>{
+    if(muted)return;
+    const c=ac(),now=c.currentTime;
+    [[880,.0],[1108.73,.1],[1318.51,.2],[1760,.32],[2093,.46]].forEach(([f,t],i)=>{
+      tone(f,now+t,.35,'sine',.3,.005,.14);
+      tone(f*2,now+t,.18,'sine',.08,.005,.1); // octave shimmer
+    });
+    noise(now+.46,.1,.07,8000,3000);
+  };
+
+  // ── WIN FANFARE: full celebratory orchestra ──
+  const playWin=()=>{
+    stopSusp();stopTick();
+    if(muted)return;
+    const c=ac(),now=c.currentTime;
+    const mel=[[523.25,0,.3],[659.25,.2,.3],[783.99,.4,.3],[1046.5,.62,.5],[1318.51,.95,.55],[1567.98,1.32,.6],[2093.0,1.72,1.3]];
+    mel.forEach(([f,t,d])=>tone(f,now+t,d,'sine',.42,.01,.12));
+    [[415.3,0,.3],[523.25,.2,.3],[622.25,.4,.3],[830.6,.62,.5],[1046.5,.95,.55],[1244,.3,.6]].forEach(([f,t,d])=>tone(f,now+t,d,'sine',.2,.01,.12));
+    [[130.81,0,.7],[196,.62,.7],[261.63,1.32,.8],[130.81,1.72,1.3]].forEach(([f,t,d])=>tone(f,now+t,d,'triangle',.35,.01,.15));
+    [0,.62,1.32,1.72].forEach(t=>noise(now+t,.12,.1,9000,3000));
+  };
+
+  const toggle=()=>{muted=!muted;if(muted){stopSusp();stopTick()}return muted};
+
+  return{doTick,startTick,stopTick,tickMs,playSelect,playCorrect,playWrong,playLifeline,playWin,startSusp,stopSusp,toggle,isMuted:()=>muted};
+})();
+
+/* ══════════════════════════════════
+   QUESTIONS
+══════════════════════════════════ */
+const QS=[
+  {q:'Which city is the capital of India?',o:['Mumbai','New Delhi','Kolkata','Chennai'],c:1},
+  {q:'How many days are in a leap year?',o:['364','365','366','367'],c:2},
+  {q:'Which planet is known as the Red Planet?',o:['Venus','Jupiter','Mars','Saturn'],c:2},
+  {q:'In cricket, how many runs when the ball clears the boundary on the full?',o:['4','6','3','8'],c:1},
+  {q:'What is the national animal of India?',o:['Lion','Elephant','Bengal Tiger','Leopard'],c:2},
+  {q:'Who wrote India\'s national anthem "Jana Gana Mana"?',o:['Bankim Chandra Chatterjee','Rabindranath Tagore','Sarojini Naidu','Sri Aurobindo'],c:1},
+  {q:'What is the chemical symbol for Gold?',o:['Ag','Au','Fe','Cu'],c:1},
+  {q:'Which is the longest river in the world?',o:['Amazon','Nile','Yangtze','Mississippi'],c:1},
+  {q:'In which year did India win its first Cricket World Cup?',o:['1975','1979','1983','1987'],c:2},
+  {q:'Which film won the Oscar for Best Picture for the year 1997?',o:['Braveheart','Gladiator','Titanic','Shakespeare in Love'],c:2},
+  {q:'Who was the first Indian woman to win an Olympic medal?',o:['P.T. Usha','Mary Kom','Karnam Malleswari','Saina Nehwal'],c:2},
+  {q:'Which is the smallest bone in the human body?',o:['Femur','Stapes','Tibia','Fibula'],c:1},
+  {q:'"Tirthankara" is most closely associated with which religion?',o:['Buddhism','Hinduism','Jainism','Sikhism'],c:2},
+  {q:'What does HTTP stand for?',o:['HyperText Transfer Protocol','HyperText Transmission Process','HyperText Transfer Process','HyperText Transmission Protocol'],c:0},
+  {q:'Which Mughal Emperor commissioned the Jama Masjid in Delhi?',o:['Akbar','Jahangir','Aurangzeb','Shah Jahan'],c:3},
+];
+
+/* ══════════════════════════════════
+   STATE
+══════════════════════════════════ */
+const TMAX=60,CIRC=2*Math.PI*32; // r=32
+let qi=0,score=0,locked=false,elim=[],tLeft=TMAX,ticker=null,phoneCd=null;
+
+/* ══════════════════════════════════
+   HELPERS
+══════════════════════════════════ */
+const $=id=>document.getElementById(id);
+const scrs={intro:$('s-intro'),game:$('s-game'),over:$('s-over'),win:$('s-win')};
+const btns=[...$('ansGrid').querySelectorAll('.ans')];
+const show=n=>{Object.values(scrs).forEach(s=>s.classList.remove('on'));scrs[n].classList.add('on')};
+
+const buildDots=()=>{
+  const el=$('dots');el.innerHTML='';
+  for(let i=0;i<15;i++){
+    const d=document.createElement('div');
+    d.className='pdot'+(i<qi?' done':i===qi?' cur':'');
+    el.appendChild(d);
+  }
+};
+
+const updateTimer=()=>{
+  const pct=tLeft/TMAX;
+  $('tRing').style.strokeDashoffset=CIRC*(1-pct);
+  $('tNum').textContent=tLeft;
+  $('tRing').className='t-ring'+(tLeft<=8?' danger':tLeft<=20?' warn':'');
+  $('tNum').className='t-num'+(tLeft<=8?' danger':tLeft<=20?' warn':'');
+};
+
+let prevMs=0;
+const startTimer=()=>{
+  stopTimer();tLeft=TMAX;updateTimer();
+  prevMs=SFX.tickMs(tLeft);
+  SFX.startTick(tLeft);
+  ticker=setInterval(()=>{
+    tLeft--;updateTimer();
+    const nm=SFX.tickMs(tLeft);
+    if(nm!==prevMs){prevMs=nm;SFX.startTick(tLeft)}
+    if(tLeft<=0){stopTimer();timeUp()}
+  },1000);
+};
+const stopTimer=()=>{if(ticker){clearInterval(ticker);ticker=null}SFX.stopTick()};
+
+const timeUp=()=>{
+  SFX.playWrong();locked=true;
+  btns.forEach(b=>b.disabled=true);
+  btns[QS[qi].c].classList.add('correct');
+  setTimeout(()=>endGame('timeout'),2400);
+};
+
+/* ══════════════════════════════════
+   RENDER
+══════════════════════════════════ */
+const render=()=>{
+  const q=QS[qi];
+  $('qNo').textContent=`QUESTION ${qi+1} OF 15`;
+  $('qText').textContent=q.q;
+  ['A','B','C','D'].forEach((l,i)=>{
+    btns[i].className='ans';btns[i].disabled=false;
+    btns[i].querySelector('.ans-letter').textContent=l;
+    btns[i].querySelector('.ans-text').textContent=q.o[i];
+    if(elim.includes(i))btns[i].classList.add('elim');
+  });
+  clearOv();buildDots();locked=false;
+  SFX.stopSusp();startTimer();
+};
+
+/* ══════════════════════════════════
+   ANSWER
+══════════════════════════════════ */
+const pick=i=>{
+  if(locked||elim.includes(i))return;
+  locked=true;stopTimer();SFX.playSelect();
+  btns.forEach(b=>b.disabled=true);
+  btns[i].classList.add('sel');
+  setTimeout(()=>{
+    const c=QS[qi].c;
+    if(i===c){
+      btns[i].classList.replace('sel','correct');
+      score++;SFX.playCorrect();
+      setTimeout(()=>{
+        if(qi===14){show('win');SFX.playWin();confetti()}
+        else{qi++;elim=[];render()}
+      },2400);
+    }else{
+      btns[i].classList.replace('sel','wrong');
+      btns[c].classList.add('correct');
+      SFX.playWrong();
+      setTimeout(()=>endGame('wrong'),2400);
+    }
+  },1900);
+};
+
+/* ══════════════════════════════════
+   END
+══════════════════════════════════ */
+const endGame=reason=>{
+  const map={
+    wrong:['😢','Wrong Answer!','Better luck next time!'],
+    timeout:['⏱️','Time\'s Up!','You ran out of time.'],
+  };
+  const[ic,ti,su]=map[reason];
+  $('goIcon').textContent=ic;$('goTitle').textContent=ti;$('goSub').textContent=su;
+  $('goScore').textContent=`${score} / 15`;
+  $('goLbl').textContent=`${score} question${score!==1?'s':''} answered correctly`;
+  show('over');
+};
+
+/* ══════════════════════════════════
+   LIFELINES
+══════════════════════════════════ */
+const do5050=()=>{
+  if($('ll50').classList.contains('used')||locked)return;
+  $('ll50').classList.add('used');SFX.playLifeline();
+  const pool=[0,1,2,3].filter(i=>i!==QS[qi].c&&!elim.includes(i)).sort(()=>Math.random()-.5).slice(0,2);
+  pool.forEach(i=>{elim.push(i);btns[i].classList.add('elim')});
+};
+
+const doPhone=()=>{
+  if($('llPh').classList.contains('used')||locked)return;
+  $('llPh').classList.add('used');SFX.playLifeline();
+  const right=Math.random()<.82;
+  let guess=QS[qi].c;
+  if(!right){const pool=[0,1,2,3].filter(i=>i!==QS[qi].c&&!elim.includes(i));if(pool.length)guess=pool[Math.floor(Math.random()*pool.length)]}
+  const L=['A','B','C','D'];
+  let s=10;
+  const card=document.createElement('div');card.className='ov-card';
+  card.innerHTML=`<div class="ph-line">"I'm fairly confident it's <strong style="color:#ffd700">${L[guess]}: ${QS[qi].o[guess]}</strong> — go for it!"</div><div class="ph-cd" id="pcd">📞 Call ends in ${s}s</div>`;
+  $('ovZone').innerHTML='';$('ovZone').appendChild(card);
+  if(phoneCd)clearInterval(phoneCd);
+  phoneCd=setInterval(()=>{
+    s--;const el=document.getElementById('pcd');
+    if(el)el.textContent=s>0?`📞 Call ends in ${s}s`:'📞 Call ended';
+    if(s<=0){clearInterval(phoneCd);phoneCd=null;setTimeout(clearOv,900)}
+  },1000);
+};
+
+const doAudience=()=>{
+  if($('llAu').classList.contains('used')||locked)return;
+  $('llAu').classList.add('used');SFX.playLifeline();
+  const c=QS[qi].c,pct=[0,0,0,0];
+  const share=48+Math.floor(Math.random()*34);pct[c]=share;
+  let rem=100-share;
+  [0,1,2,3].filter(i=>i!==c&&!elim.includes(i)).forEach((i,idx,arr)=>{
+    if(idx===arr.length-1){pct[i]=rem}
+    else{const v=Math.floor(Math.random()*(rem/2));pct[i]=v;rem-=v}
+  });
+  const L=['A','B','C','D'];
+  const card=document.createElement('div');card.className='ov-card';
+  card.innerHTML=`<div class="aud-title">👥 AUDIENCE POLL</div><div class="aud-row">${L.map((l,i)=>`<div class="aud-col"><div class="aud-pct">${pct[i]}%</div><div class="aud-well"><div class="aud-fill" id="af${i}"></div></div><div class="aud-ltr">${l}</div></div>`).join('')}</div>`;
+  $('ovZone').innerHTML='';$('ovZone').appendChild(card);
+  requestAnimationFrame(()=>[0,1,2,3].forEach(i=>{const el=document.getElementById('af'+i);if(el)el.style.height=pct[i]+'%'}));
+  setTimeout(clearOv,9000);
+};
+
+const clearOv=()=>{if(phoneCd){clearInterval(phoneCd);phoneCd=null}$('ovZone').innerHTML=''};
+
+/* ══════════════════════════════════
+   WALK AWAY
+══════════════════════════════════ */
+const walkAway=()=>{
+  stopTimer();SFX.stopSusp();
+  $('goIcon').textContent='🚶';$('goTitle').textContent='You Walked Away!';
+  $('goSub').textContent=`You reached question ${qi+1}`;
+  $('goScore').textContent=`${score} / ${qi}`;
+  $('goLbl').textContent=`${score} of ${qi} questions correct`;
+  show('over');
+};
+
+/* ══════════════════════════════════
+   START
+══════════════════════════════════ */
+const startGame=()=>{
+  qi=0;score=0;elim=[];locked=false;clearOv();stopTimer();
+  ['ll50','llPh','llAu'].forEach(id=>$(id).classList.remove('used'));
+  render();show('game');
+};
+
+/* ══════════════════════════════════
+   CONFETTI
+══════════════════════════════════ */
+const confetti=()=>{
+  const cols=['#ffd700','#ff6b35','#00c8ff','#ff1a44','#00e87a','#ff4081','#ffeb3b','#a855f7','#22d3ee'];
+  for(let i=0;i<160;i++){
+    setTimeout(()=>{
+      const el=document.createElement('div');el.className='cf';
+      const sz=3+Math.random()*10,tall=Math.random()>.5;
+      el.style.cssText=`left:${Math.random()*100}vw;width:${sz}px;height:${tall?sz*2.2:sz}px;background:${cols[Math.floor(Math.random()*cols.length)]};border-radius:${Math.random()>.5?'50%':'2px'};animation-duration:${2+Math.random()*3}s;animation-timing-function:cubic-bezier(.25,.46,.45,.94)`;
+      document.body.appendChild(el);setTimeout(()=>el.remove(),6000);
+    },i*20);
+  }
+};
+
+/* ══════════════════════════════════
+   EVENTS
+══════════════════════════════════ */
+$('btnPlay').addEventListener('click',startGame);
+$('btnAgain').addEventListener('click',startGame);
+$('btnWin').addEventListener('click',startGame);
+$('btnWalk').addEventListener('click',walkAway);
+$('ll50').addEventListener('click',do5050);
+$('llPh').addEventListener('click',doPhone);
+$('llAu').addEventListener('click',doAudience);
+btns.forEach(b=>b.addEventListener('click',()=>pick(+b.dataset.i)));
+$('snd').addEventListener('click',()=>{
+  const m=SFX.toggle();
+  $('snd').textContent=m?'🔇':'🔊';
+});
+
+buildDots();
+</script>
+</body>
+</html>
